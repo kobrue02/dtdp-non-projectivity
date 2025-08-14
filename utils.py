@@ -18,7 +18,6 @@ def plot(
     
     # Create a more sophisticated color palette
     # Use colorblind-friendly colors with distinct patterns for proj/non-proj
-    colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#8E44AD', '#27AE60']
     
     # Plot with improved styling
     sns.barplot(
@@ -26,7 +25,7 @@ def plot(
         x="F1 Score", 
         y="Metric", 
         hue="Label",
-        palette=colors,
+        palette=sns.color_palette("Paired"),
         ax=ax,
         saturation=0.8,
         alpha=0.9
@@ -93,3 +92,6 @@ def eval_string_to_pandas(data: str) -> pd.DataFrame:
     for col in df.columns[1:]:
         df[col] = pd.to_numeric(df[col], errors='coerce')
     return df
+
+if __name__ == "__main__":
+    plot(pd.read_csv("result_ru.csv"))

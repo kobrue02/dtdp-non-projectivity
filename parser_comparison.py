@@ -32,7 +32,10 @@ class Parser:
     def _load_parser(self):
         spacy_model_names = {
             "en": "en_core_web_lg",
-            "de": "de_core_news_lg"
+            "de": "de_core_news_lg",
+            "fr": "fr_core_news_lg",
+            "ru": "ru_core_news_lg",
+            "zh": "zh_core_web_lg"
         }
         match self.model_name:
             case "spacy":
@@ -78,16 +81,39 @@ class Evaluate:
         self.test_file_nonproj = f"{self.test_file.split(".connlu")[0]}_nonprojective.conllu"
         self.test_file_proj = f"{self.test_file.split(".connlu")[0]}_projective.conllu"
         self.docs = self._load_conllu_file(fp)
-        self.docs_projective = [doc for doc in self.docs if self._is_projective(doc)]
-        self.docs_nonprojective = [doc for doc in self.docs if not self._is_projective(doc)]
+        self.docs_projective = [doc for doc in self.docs if self.is_projective(doc)]
+        self.docs_nonprojective = [doc for doc in self.docs if not self.is_projective(doc)]
         self.parser = parser
     
-    def _is_projective(self, sentence: pyconll.unit.sentence.Sentence) -> bool:
-        try:
-            proj = find_nonprojective_deps(sentence)
-            return len(proj) > 0
-        except KeyError:
-            return False
+
+    def is_projective(self, sentence):
+        """
+        Check if a pyconll Sentence is projective.
+        
+        Args:
+            sentence: A pyconll.unit.sentence.Sentence object
+        
+        Returns:
+            bool: True if projective, False otherwise
+        """
+        pairs = []
+        for token in sentence:
+            if token.head is not None:  # Skip tokens without heads (like root)
+                pairs.append((int(token.id), int(token.head)))
+        # code from lecture
+        projective = True
+        for d1, h1 in pairs:
+            for d2, h2 in pairs:
+                s1, e1 = sorted([d1, h1])
+                s2, e2 = sorted([d2, h2])
+                if s1 < s2 < e1 < e2 or s2 < s1 < e2 < e1:
+                    projective = False
+                    # print(d1, h1, d2, h2)
+                    # print(s1, e1, s2, e2)
+                    break
+            if not projective:
+                break
+        return projective
     
     def _load_conllu_file(self, fp):
         data = pyconll.load_from_file(fp)
@@ -178,6 +204,7 @@ def _eval_lang_dirs(file, lang, model):
         try:
             _df, n_proj_sub, n_nonproj_sub = _eval_file_conllu(file, lang, model)
         except Exception as e:
+            print(e)
             continue
         result_dfs.append(_df)
         n_proj += n_proj_sub
